@@ -77,6 +77,7 @@ public:
 	bool IsAiming();
 	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }
 	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
-	FORCEINLINE AWeapon* GetEquippedWeapon();
+	AWeapon* GetEquippedWeapon();
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
+	FVector GetHitTarget() const;
 };

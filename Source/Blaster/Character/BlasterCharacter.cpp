@@ -145,7 +145,11 @@ void ABlasterCharacter::CrouchButtonPressed()
 {
 	if (bIsCrouched)
 		UnCrouch();
-	else Crouch();
+	//not in air
+	else if (!this->GetCharacterMovement()->IsFalling())
+	{
+		Crouch();
+	}
 }
 
 void ABlasterCharacter::AimButtonPressed()
@@ -306,6 +310,12 @@ AWeapon* ABlasterCharacter::GetEquippedWeapon()
 {
 	if(Combat==nullptr) return nullptr;
 	return Combat->EquippedWeapon;
+}
+
+FVector ABlasterCharacter::GetHitTarget() const
+{
+	if (Combat == nullptr) return FVector();
+	return Combat->HitTarget;
 }
 
 

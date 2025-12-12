@@ -39,11 +39,16 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	SetHUDCrosshairs(DeltaTime);
+	if(character&& character->IsLocallyControlled())
+	{
+		FHitResult HitResult;
+		TraceUnderCrosshairs(HitResult);
+		HitTarget = HitResult.ImpactPoint;
+	}
 }
 
 void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 {
-	UE_LOG(LogTemp, Warning, TEXT("--- SetHUDCrosshairs called ---"));
 	if (character == nullptr || character->Controller == nullptr)
 	{
 		return;
@@ -54,7 +59,6 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 		HUD = HUD == nullptr ? Cast<AFPS_HUD>(Controller->GetHUD()) : HUD;
 		if (HUD)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("--- HUD is not null ---"));
 			FHUDPackage HUDPackage;
 			if (EquippedWeapon)
 			{
@@ -72,6 +76,22 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 				HUDPackage.CrosshairsTop = nullptr;
 				HUDPackage.CrosshairsBottom = nullptr;
 			}
+			//Calculate crosshair spread
+			FVector2D WalkSpeedRange(0.f, character->GetCharacterMovement()->MaxWalkSpeed);
+			FVector2D VelocityMultiplierRange(0.f, 1.f);
+			FVector Velocity = character->GetVelocity();
+			Velocity.Z = 0;
+			CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeedRange, VelocityMultiplierRange, Velocity.Size());
+			if (character->GetCharacterMovement()->IsFalling())
+			{
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 2.25f, DeltaTime, 2.25f);
+			}
+			else
+			{
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+			}
+
+			HUDPackage.CrosshairSpread = CrosshairVelocityFactor + CrosshairInAirFactor;
 			HUD->SetHUDPackage(HUDPackage);
 		}
 	}
