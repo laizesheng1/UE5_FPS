@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Blaster/HUD/FPS_HUD.h"
 #include "CombatComponent.generated.h"
 
 #define TRACE_LENGTH 80000.f
@@ -66,8 +67,28 @@ private:
 	 */
 	float CrosshairVelocityFactor;
 	float CrosshairInAirFactor;
+	float CrosshairAimFactor;
+	float CrosshairShootFactor;
 
 	FVector HitTarget;
+	FHUDPackage HUDPackage;
+
+	/**
+	 * Aiming and FOV
+	 */
+
+	float DefaultFOV;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	float ZoomedFOV = 30.f;
+
+	float CurrentFOV;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float ZoomInterSpeed = 20.f;
+
+	void InterFOV(float DeltaTime);
+
 public:
 
 };
