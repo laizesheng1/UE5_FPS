@@ -28,7 +28,7 @@ public:
 	void Elim();
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastElim();
-
+	virtual void Destroyed() override;
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class USpringArmComponent* CameraBoom;
@@ -87,6 +87,7 @@ private:
 	
 	UFUNCTION()
 	void OnRep_Health();
+	UPROPERTY()
 	class AFPS_PlayerController* FPS_PlayerController;
 	bool bElimmed = false;
 
@@ -115,6 +116,19 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Elim")
 	UMaterialInstance* DissolveMaterialInstance;
 
+/**
+ * @brief Elim bot
+ */
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* ElimBotEffect;
+	UPROPERTY(VisibleAnywhere)
+	UParticleSystemComponent* ElimBotComponent;
+	UPROPERTY(EditAnywhere)
+	class USoundCue* ElimBotSound;
+
+	UPROPERTY()
+	class ABlasterPlayerState* BlasterPlayerState;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -140,7 +154,8 @@ protected:
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 	void UpdateHUDHealth();
-
+	//Poll for any relevant classed and initialize our HUD
+	void PollInit();
 public:	
 	void SetOverlappingWeapon(AWeapon* weapon);
 	bool IsWeaponEquipped();
@@ -153,4 +168,6 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 };
