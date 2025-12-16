@@ -34,6 +34,7 @@ public:
 	void ShowPickUpWidget(bool bShowWidget);
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
+	void AddAmmo(int32 AmmoToAdd);
 
 	/**
 	 * @brief Texture for the weapon crosshairs
@@ -70,6 +71,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	bool bAutomatic = true;
+
+	UPROPERTY(EditAnywhere)
+	class USoundCue* EquipSound;
 
 protected:
 	// Called when the game starts or when spawned
@@ -141,4 +145,6 @@ public:
 	FORCEINLINE float GetZoomedInterSpeed() const { return ZoomedInterSpeed; }
 	bool IsEmpty();
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
 };
