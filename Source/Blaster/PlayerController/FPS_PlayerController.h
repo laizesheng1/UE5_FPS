@@ -19,10 +19,36 @@ public:
 	void SetHUDDefeats(int32 Defeats);
 	void SetHUDWeaponAmmo(int32 Ammo);
 	void SetHUDCarriedAmmo(int32 Ammo);
+	void SetHUDMatchCountdown(float CountdownTime);
 	virtual void OnPossess(APawn* InPawn) override;
+	virtual void Tick(float DeltaTime) override;
+
+	virtual float GetServerTime();		//synced with server world clock
+	virtual void ReceivedPlayer() override;			//Sync with server clock as soon as possible
+
 protected:
 	virtual void BeginPlay() override;
+	void SetHUDTime();
+
+	/**
+	 * Sync time between client and server 
+	 */
+	//RPC to send from the client to server to request time
+	UFUNCTION(Server, Reliable)
+	void ServerRequestServerTime(float TimeOfClientRequest);
+	//Reports the current server time to the client in response
+	UFUNCTION(Client, Reliable)
+	void ClientRequestServerTime(float TimeOfClientRequest, float TimeServerReceivedClientRequest);
+
+	float ClientServerDelta = 0.f;
+	UPROPERTY(EditAnywhere, Category = "Time")
+	float TimeSyncFrequency = 5.f;
+	float TimeSyncRunningTime = 0.f;
+	void CheckTimeSync(float DeltaTime);
+
 private:
 	UPROPERTY()
 	class AFPS_HUD* FPS_HUD;
+	float MatchTime = 120.f;
+	uint32 CountdownInt = 0;
 };

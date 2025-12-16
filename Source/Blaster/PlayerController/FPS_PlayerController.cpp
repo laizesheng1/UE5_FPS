@@ -15,6 +15,33 @@ void AFPS_PlayerController::BeginPlay()
 
 }
 
+void AFPS_PlayerController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	SetHUDTime();
+	CheckTimeSync(DeltaTime);
+}
+
+void AFPS_PlayerController::CheckTimeSync(float DeltaTime)
+{
+	TimeSyncRunningTime += DeltaTime;
+	if (IsLocalController() && TimeSyncRunningTime > TimeSyncFrequency)
+	{
+		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
+		TimeSyncRunningTime = 0.f;
+	}
+}
+
+void AFPS_PlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(InPawn);
+	if (BlasterCharacter)
+	{
+		SetHUDHealth(BlasterCharacter->GetHealth(), BlasterCharacter->GetMaxHealth());
+	}
+}
+
 void AFPS_PlayerController::SetHUDHealth(float Health, float MaxHealth)
 {
 	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
@@ -70,12 +97,56 @@ void AFPS_PlayerController::SetHUDCarriedAmmo(int32 Ammo)
 	}
 }
 
-void AFPS_PlayerController::OnPossess(APawn* InPawn)
+void AFPS_PlayerController::SetHUDMatchCountdown(float CountdownTime)
 {
-	Super::OnPossess(InPawn);
-	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(InPawn);
-	if (BlasterCharacter)
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->MatchCountdownText)
 	{
-		SetHUDHealth(BlasterCharacter->GetHealth(), BlasterCharacter->GetMaxHealth());
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		int32 Seconds = CountdownTime - Minutes * 60.f;
+		FString MatchCountdownText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+		FPS_HUD->CharacterOverlay->MatchCountdownText->SetText(FText::FromString(MatchCountdownText));
+	}
+}
+
+void AFPS_PlayerController::SetHUDTime()
+{
+	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
+	if (CountdownInt != SecondsLeft)
+	{
+		SetHUDMatchCountdown(MatchTime - GetServerTime());
+	}
+	CountdownInt = SecondsLeft;
+}
+
+void AFPS_PlayerController::ServerRequestServerTime_Implementation(float TimeOfClientRequest)
+{
+	float ServerTimeOfReceipt = GetWorld()->GetTimeSeconds();
+	ClientRequestServerTime(TimeOfClientRequest, ServerTimeOfReceipt);
+}
+
+void AFPS_PlayerController::ClientRequestServerTime_Implementation(float TimeOfClientRequest, float TimeServerReceivedClientRequest)
+{
+	float RoundTripTime = GetWorld()->GetTimeSeconds() - TimeOfClientRequest;
+	float CurrentServerTime = TimeServerReceivedClientRequest + (RoundTripTime * 0.5f);
+	ClientServerDelta = CurrentServerTime - GetWorld()->GetTimeSeconds();
+}
+
+float AFPS_PlayerController::GetServerTime()
+{
+	if (HasAuthority())
+	{
+		return GetWorld()->GetTimeSeconds();
+	}
+	else return GetWorld()->GetTimeSeconds() + ClientServerDelta;
+}
+
+void AFPS_PlayerController::ReceivedPlayer()
+{
+	Super::ReceivedPlayer();
+	if (IsLocalController())
+	{
+		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
 	}
 }
