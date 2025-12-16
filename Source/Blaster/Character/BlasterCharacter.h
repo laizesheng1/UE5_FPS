@@ -7,6 +7,7 @@
 #include "Blaster/FPS_Types/TurningInPlace.h"
 #include "Blaster/Interfaces/InteractWithCrosshairInterface.h"
 #include "Components/TimelineComponent.h"
+#include "Blaster/FPS_Types/CombatState.h"
 #include "BlasterCharacter.generated.h"
 
 UCLASS()
@@ -22,6 +23,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bIsAiming);
+	void PlayReloadMontage();
 	void PlayElimMontage();
 
 	virtual void OnRep_ReplicatedMovement() override;
@@ -66,6 +68,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* ElimMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ReloadMontage;
 
 	void HideCameraIfCharacterClose();
 
@@ -139,6 +144,7 @@ protected:
 	void LookUp(float Value);
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
+	void ReloadButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
@@ -170,4 +176,5 @@ public:
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
+	ECombatState GetCombatState() const;
 };
