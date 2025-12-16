@@ -50,6 +50,26 @@ void AFPS_PlayerController::SetHUDDefeats(int32 Defeats)
 	}
 }
 
+void AFPS_PlayerController::SetHUDWeaponAmmo(int32 Ammo)
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->WeaponAmmoAmount)
+	{
+		FString WeaponAmmoText = FString::Printf(TEXT("%d"), Ammo);
+		FPS_HUD->CharacterOverlay->WeaponAmmoAmount->SetText(FText::FromString(WeaponAmmoText));
+	}
+}
+
+void AFPS_PlayerController::SetHUDCarriedAmmo(int32 Ammo)
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->CarriedAmmoAmount)
+	{
+		FString CarriedAmmoText = FString::Printf(TEXT("%d"), Ammo);
+		FPS_HUD->CharacterOverlay->CarriedAmmoAmount->SetText(FText::FromString(CarriedAmmoText));
+	}
+}
+
 void AFPS_PlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);

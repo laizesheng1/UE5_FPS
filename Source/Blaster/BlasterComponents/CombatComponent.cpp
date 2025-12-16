@@ -37,6 +37,10 @@ void UCombatComponent::BeginPlay()
 			DefaultFOV = character->GetFollowCamera()->FieldOfView;
 			CurrentFOV = DefaultFOV;
 		}
+		if (character->HasAuthority())
+		{
+			InitializeCarriedAmmo();
+		}
 	}
 }
 
@@ -66,7 +70,7 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 
 void UCombatComponent::Fire()
 {
-	if (bCanFire)
+	if (CanFire())
 	{
 		if(EquippedWeapon)
 			bCanFire = false;
@@ -124,12 +128,18 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
+	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly);
+
 }
 
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	if (character == nullptr || WeaponToEquip==nullptr)
 		return;
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->Dropped();
+	}
 	EquippedWeapon = WeaponToEquip;
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	const USkeletalMeshSocket* HandSocke = character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
@@ -138,6 +148,18 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 		HandSocke->AttachActor(EquippedWeapon, character->GetMesh());
 	}
 	EquippedWeapon->SetOwner(character);
+	EquippedWeapon->SetHUDAmmo();
+
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
+
+	Controller = Controller == nullptr ? Cast<AFPS_PlayerController>(character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
 
 	character->GetCharacterMovement()->bOrientRotationToMovement = false;
 	character->bUseControllerRotationYaw = true;
@@ -299,4 +321,25 @@ void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 	{
 		character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
 	}
+}
+
+bool UCombatComponent::CanFire()
+{
+	if (EquippedWeapon == nullptr)
+		return false;
+	return !EquippedWeapon->IsEmpty() || !bCanFire;
+}
+
+void UCombatComponent::OnRep_CarriedAmmo()
+{
+	Controller = Controller == nullptr ? Cast<AFPS_PlayerController>(character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
+}
+
+void UCombatComponent::InitializeCarriedAmmo()
+{
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingARAmmo);
 }
