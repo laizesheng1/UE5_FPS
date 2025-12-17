@@ -55,8 +55,9 @@ void AFPS_PlayerController::ServerCheckMatchState_Implementation()
 		WarmupTime = GameMode->WarmupTime;
 		MatchTime = GameMode->MatchTime;
 		LevelStartingTime = GameMode->LevelStartingTime;
+		CooldownTime = GameMode->CooldownTime;
 		MatchState = GameMode->GetMatchState();
-		ClientJoinMidgame(MatchState, WarmupTime, MatchTime, LevelStartingTime);
+		ClientJoinMidgame(MatchState, WarmupTime, MatchTime, LevelStartingTime, CooldownTime);
 
 		//when test is a bug, in listen server is a server and client
 		//if (FPS_HUD && MatchState == MatchState::WaitingToStart)
@@ -66,11 +67,12 @@ void AFPS_PlayerController::ServerCheckMatchState_Implementation()
 	}
 }
 
-void AFPS_PlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch, float Warmup, float Match, float StartingTime)
+void AFPS_PlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch, float Warmup, float Match, float StartingTime, float Cooldown)
 {
 	WarmupTime = Warmup;
 	MatchTime = Match;
 	LevelStartingTime = StartingTime;
+	CooldownTime = Cooldown;
 	MatchState = StateOfMatch;
 	OnMatchStateSet(MatchState);
 	if (FPS_HUD && MatchState == MatchState::WaitingToStart)
@@ -166,6 +168,11 @@ void AFPS_PlayerController::SetHUDMatchCountdown(float CountdownTime)
 
 	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->MatchCountdownText)
 	{
+		if (CountdownTime < 0.f)
+		{
+			FPS_HUD->CharacterOverlay->MatchCountdownText->SetText(FText());
+			return;
+		}
 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
 		int32 Seconds = CountdownTime - Minutes * 60.f;
 		FString MatchCountdownText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
@@ -179,6 +186,11 @@ void AFPS_PlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
 
 	if (FPS_HUD && FPS_HUD->Annoucement && FPS_HUD->Annoucement->WarmupTime)
 	{
+		if (CountdownTime < 0.f)
+		{
+			FPS_HUD->Annoucement->WarmupTime->SetText(FText());
+			return;
+		}
 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
 		int32 Seconds = CountdownTime - Minutes * 60.f;
 		FString WarmupTimeText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
@@ -193,11 +205,22 @@ void AFPS_PlayerController::SetHUDTime()
 		TimeLeft = WarmupTime - GetServerTime() + LevelStartingTime;
 	else if (MatchState == MatchState::InProgress)
 		TimeLeft = WarmupTime + MatchTime - GetServerTime() + LevelStartingTime;
+	else if (MatchState == MatchState::Cooldown)
+		TimeLeft = CooldownTime + WarmupTime + MatchTime - GetServerTime() + LevelStartingTime;
 
 	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
+	/*if (HasAuthority())			//left a bug :server time can't down, remove is good
+	{
+		BlasterGameMode = BlasterGameMode == nullptr ? Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this)) : BlasterGameMode;
+		if (BlasterGameMode)
+		{
+			SecondsLeft = FMath::CeilToInt(BlasterGameMode->GetCooldownTime() + LevelStartingTime);
+		}
+	}*/
+
 	if (CountdownInt != SecondsLeft)
 	{
-		if (MatchState == MatchState::WaitingToStart)
+		if (MatchState == MatchState::WaitingToStart || MatchState == MatchState::Cooldown)
 		{
 			SetHUDAnnouncementCountdown(TimeLeft);
 		}
@@ -248,6 +271,10 @@ void AFPS_PlayerController::OnMatchStateSet(FName State)
 	{
 		HandleMatchHasStart();
 	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		HandleCooldown();
+	}
 }
 
 void AFPS_PlayerController::OnRep_MatchState()
@@ -255,6 +282,10 @@ void AFPS_PlayerController::OnRep_MatchState()
 	if (MatchState == MatchState::InProgress)
 	{
 		HandleMatchHasStart();
+	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		HandleCooldown();
 	}
 }
 
@@ -267,6 +298,23 @@ void AFPS_PlayerController::HandleMatchHasStart()
 		if (FPS_HUD->Annoucement)
 		{
 			FPS_HUD->Annoucement->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+}
+
+void AFPS_PlayerController::HandleCooldown()
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD)
+	{
+		FPS_HUD->CharacterOverlay->RemoveFromParent();
+		if (FPS_HUD->Annoucement && FPS_HUD->Annoucement->AnnouncementText
+			&& FPS_HUD->Annoucement->InfoText)
+		{
+			FPS_HUD->Annoucement->SetVisibility(ESlateVisibility::Visible);
+			FString AnnouncementText("New Match Start In:");
+			FPS_HUD->Annoucement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
+			FPS_HUD->Annoucement->InfoText->SetText(FText());
 		}
 	}
 }
