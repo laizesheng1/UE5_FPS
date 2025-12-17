@@ -4,11 +4,12 @@
 #include "FPS_HUD.h"
 #include "GameFramework/PlayerController.h"
 #include "CharacterOverlay.h"
+#include "Announcement.h"
 
 void AFPS_HUD::BeginPlay()
 {
 	Super::BeginPlay();
-	AddCharacterOverlay();
+	//AddCharacterOverlay();
 }
 
 void AFPS_HUD::AddCharacterOverlay()
@@ -18,6 +19,16 @@ void AFPS_HUD::AddCharacterOverlay()
 	{
 		CharacterOverlay = CreateWidget<UCharacterOverlay>(PlayerController, CharacterOverlayClass);
 		CharacterOverlay->AddToViewport();
+	}
+}
+
+void AFPS_HUD::AddAnnoucement()
+{
+	APlayerController* PlayerController = GetOwningPlayerController();
+	if (PlayerController && AnnoucementClass)
+	{
+		Annoucement = CreateWidget<UAnnouncement>(PlayerController, AnnoucementClass);
+		Annoucement->AddToViewport();
 	}
 }
 

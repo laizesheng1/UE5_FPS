@@ -7,11 +7,23 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Blaster/Character/BlasterCharacter.h"
+#include "Net/UnrealNetwork.h"
+#include "Blaster/GameMode/BlasterGameMode.h"
+#include "Blaster/HUD/Announcement.h"
+#include "Kismet/GameplayStatics.h"
 
 void AFPS_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
 	FPS_HUD = Cast<AFPS_HUD>(GetHUD());
+	ServerCheckMatchState();
+}
+
+void AFPS_PlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AFPS_PlayerController, MatchState);
 
 }
 
@@ -20,7 +32,10 @@ void AFPS_PlayerController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	SetHUDTime();
 	CheckTimeSync(DeltaTime);
+	PollInit();			//set HUD before characteroverlay was initialized
 }
+
+
 
 void AFPS_PlayerController::CheckTimeSync(float DeltaTime)
 {
@@ -29,6 +44,38 @@ void AFPS_PlayerController::CheckTimeSync(float DeltaTime)
 	{
 		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
 		TimeSyncRunningTime = 0.f;
+	}
+}
+
+void AFPS_PlayerController::ServerCheckMatchState_Implementation()
+{
+	ABlasterGameMode* GameMode = Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this));
+	if (GameMode)
+	{
+		WarmupTime = GameMode->WarmupTime;
+		MatchTime = GameMode->MatchTime;
+		LevelStartingTime = GameMode->LevelStartingTime;
+		MatchState = GameMode->GetMatchState();
+		ClientJoinMidgame(MatchState, WarmupTime, MatchTime, LevelStartingTime);
+
+		//when test is a bug, in listen server is a server and client
+		//if (FPS_HUD && MatchState == MatchState::WaitingToStart)
+		//{
+		//	FPS_HUD->AddAnnoucement();
+		//}
+	}
+}
+
+void AFPS_PlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch, float Warmup, float Match, float StartingTime)
+{
+	WarmupTime = Warmup;
+	MatchTime = Match;
+	LevelStartingTime = StartingTime;
+	MatchState = StateOfMatch;
+	OnMatchStateSet(MatchState);
+	if (FPS_HUD && MatchState == MatchState::WaitingToStart)
+	{
+		FPS_HUD->AddAnnoucement();
 	}
 }
 
@@ -54,6 +101,12 @@ void AFPS_PlayerController::SetHUDHealth(float Health, float MaxHealth)
 		FString HealthText = FString::Printf(TEXT("%d/%d"), FMath::CeilToInt(Health), FMath::CeilToInt(MaxHealth));
 		FPS_HUD->CharacterOverlay->HealthText->SetText(FText::FromString(HealthText));
 	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDHealth = Health;
+		HUDMaxHealth = MaxHealth;
+	}
 }
 
 void AFPS_PlayerController::SetHUDScore(float Score)
@@ -65,6 +118,11 @@ void AFPS_PlayerController::SetHUDScore(float Score)
 		FString ScoreText = FString::Printf(TEXT("%d"), FMath::FloorToInt(Score));
 		FPS_HUD->CharacterOverlay->ScoreAmount->SetText(FText::FromString(ScoreText));
 	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDScore = Score;
+	}
 }
 
 void AFPS_PlayerController::SetHUDDefeats(int32 Defeats)
@@ -74,6 +132,11 @@ void AFPS_PlayerController::SetHUDDefeats(int32 Defeats)
 	{
 		FString DefeatsText = FString::Printf(TEXT("%d"), Defeats);
 		FPS_HUD->CharacterOverlay->DefeatsAmount->SetText(FText::FromString(DefeatsText));
+	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDDefeats = Defeats;
 	}
 }
 
@@ -110,14 +173,40 @@ void AFPS_PlayerController::SetHUDMatchCountdown(float CountdownTime)
 	}
 }
 
+void AFPS_PlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+
+	if (FPS_HUD && FPS_HUD->Annoucement && FPS_HUD->Annoucement->WarmupTime)
+	{
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		int32 Seconds = CountdownTime - Minutes * 60.f;
+		FString WarmupTimeText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+		FPS_HUD->Annoucement->WarmupTime->SetText(FText::FromString(WarmupTimeText));
+	}
+}
+
 void AFPS_PlayerController::SetHUDTime()
 {
-	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
+	float TimeLeft = 0.f;
+	if (MatchState == MatchState::WaitingToStart)
+		TimeLeft = WarmupTime - GetServerTime() + LevelStartingTime;
+	else if (MatchState == MatchState::InProgress)
+		TimeLeft = WarmupTime + MatchTime - GetServerTime() + LevelStartingTime;
+
+	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
 	if (CountdownInt != SecondsLeft)
 	{
-		SetHUDMatchCountdown(MatchTime - GetServerTime());
+		if (MatchState == MatchState::WaitingToStart)
+		{
+			SetHUDAnnouncementCountdown(TimeLeft);
+		}
+		if (MatchState == MatchState::InProgress)
+		{
+			SetHUDMatchCountdown(TimeLeft);
+		}
 	}
-	CountdownInt = SecondsLeft;
+	CountdownInt = SecondsLeft;			//one second interal
 }
 
 void AFPS_PlayerController::ServerRequestServerTime_Implementation(float TimeOfClientRequest)
@@ -148,5 +237,53 @@ void AFPS_PlayerController::ReceivedPlayer()
 	if (IsLocalController())
 	{
 		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
+	}
+}
+
+//on server
+void AFPS_PlayerController::OnMatchStateSet(FName State)
+{
+	MatchState = State;
+	if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStart();
+	}
+}
+
+void AFPS_PlayerController::OnRep_MatchState()
+{
+	if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStart();
+	}
+}
+
+void AFPS_PlayerController::HandleMatchHasStart()
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD)
+	{
+		FPS_HUD->AddCharacterOverlay();
+		if (FPS_HUD->Annoucement)
+		{
+			FPS_HUD->Annoucement->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+}
+
+void AFPS_PlayerController::PollInit()
+{
+	if (CharacterOverlay == nullptr)
+	{
+		if (FPS_HUD && FPS_HUD->CharacterOverlay)
+		{
+			CharacterOverlay = FPS_HUD->CharacterOverlay;
+			if (CharacterOverlay)
+			{
+				SetHUDHealth(HUDHealth, HUDMaxHealth);
+				SetHUDScore(HUDScore);
+				SetHUDDefeats(HUDDefeats);
+			}
+		}
 	}
 }
