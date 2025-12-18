@@ -297,7 +297,7 @@ void AFPS_PlayerController::HandleMatchHasStart()
 	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
 	if (FPS_HUD)
 	{
-		FPS_HUD->AddCharacterOverlay();
+		if (FPS_HUD->CharacterOverlay == nullptr) FPS_HUD->AddCharacterOverlay();
 		if (FPS_HUD->Annoucement)
 		{
 			FPS_HUD->Annoucement->SetVisibility(ESlateVisibility::Hidden);
