@@ -420,11 +420,16 @@ void UCombatComponent::InterFOV(float DeltaTime)
 
 void UCombatComponent::SetAiming(bool bIsAiming)
 {
+	if (character == nullptr || EquippedWeapon == nullptr)	return;
 	bAiming = bIsAiming;
 	ServerSetAiming(bIsAiming);
 	if (character)
 	{
 		character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
+	if (character->IsLocallyControlled() && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle)
+	{
+		character->ShowSniperScopeWidget(bIsAiming);
 	}
 }
 
@@ -460,5 +465,7 @@ void UCombatComponent::InitializeCarriedAmmo()
 	CarriedAmmoMap.Emplace(EWeaponType::EWT_Pistol, StartingPistolAmmo);
 	CarriedAmmoMap.Emplace(EWeaponType::EWT_SubmachineGun, StartingSMGAmmo);
 	CarriedAmmoMap.Emplace(EWeaponType::EWT_Shotgun, StartingShotgunAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_SniperRifle, StartingSniperAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_GrenadeLauncher, StartingGrenadeLauncherAmmo);
 
 }

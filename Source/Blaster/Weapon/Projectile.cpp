@@ -7,6 +7,9 @@
 #include "Sound/SoundCue.h"
 #include "Blaster/Character/BlasterCharacter.h"
 #include "Blaster/Blaster.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+
 
 AProjectile::AProjectile()
 {
@@ -57,6 +60,21 @@ void AProjectile::Tick(float DeltaTime)
 
 }
 
+void AProjectile::StartDestroyTimer()
+{
+	GetWorldTimerManager().SetTimer(
+		DestroyTimer,
+		this,
+		&AProjectile::DestroyTimerFinished,
+		DestroyTime
+	);
+}
+
+void AProjectile::DestroyTimerFinished()
+{
+	Destroy();
+}
+
 //call on server and all clients: projectile is replicated
 void AProjectile::Destroyed()
 {
@@ -68,6 +86,47 @@ void AProjectile::Destroyed()
 	if (ImpactSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
+	}
+}
+
+void AProjectile::SpawnTrailSystem()
+{
+	if (TrailSystem)
+	{
+		TrailSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			TrailSystem,
+			GetRootComponent(),
+			FName(),
+			GetActorLocation(),
+			GetActorRotation(),
+			EAttachLocation::KeepWorldPosition,
+			false
+		);
+	}
+}
+
+void AProjectile::ExplodeDamage()
+{
+	APawn* FiringPawn = GetInstigator();		//return the pawn that owns this rocket
+	if (FiringPawn && HasAuthority())
+	{
+		AController* FiringController = FiringPawn->GetController();
+		if (FiringController)
+		{
+			UGameplayStatics::ApplyRadialDamageWithFalloff(
+				this,
+				Damage,
+				10.f,
+				GetActorLocation(),
+				DamageInnerRadius,
+				DamageOuterRadius,
+				1.f,		//fallof: damage decrease stiff
+				UDamageType::StaticClass(),
+				TArray<AActor*>(),
+				this,
+				FiringController
+			);
+		}
 	}
 }
 

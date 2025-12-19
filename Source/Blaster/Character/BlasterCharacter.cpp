@@ -117,6 +117,12 @@ void ABlasterCharacter::PlayReloadMontage()
 		case EWeaponType::EWT_Shotgun:
 			SectionName = FName("Rifle");
 			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle");
+			break;
 		}
 
 		AnimInstance->Montage_JumpToSection(SectionName);
@@ -365,6 +371,11 @@ void ABlasterCharacter::MulticastElim_Implementation()
 			ElimBotSound,
 			GetActorLocation()
 		);
+	}
+	if (IsLocallyControlled() && Combat && Combat->bAiming && 
+		Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle)
+	{
+		ShowSniperScopeWidget(false);
 	}
 }
 
