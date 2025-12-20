@@ -158,6 +158,7 @@ void AFPS_PlayerController::SetHUDWeaponAmmo(int32 Ammo)
 void AFPS_PlayerController::SetHUDCarriedAmmo(int32 Ammo)
 {
 	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+
 	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->CarriedAmmoAmount)
 	{
 		FString CarriedAmmoText = FString::Printf(TEXT("%d"), Ammo);

@@ -74,6 +74,10 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class USoundCue* EquipSound;
+	/**
+	 *  Enable custom depth
+	 */
+	void EnableCustomDepth(bool bEnable);
 
 protected:
 	// Called when the game starts or when spawned
@@ -144,6 +148,7 @@ public:
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomedInterSpeed() const { return ZoomedInterSpeed; }
 	bool IsEmpty();
+	bool IsFull();
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
