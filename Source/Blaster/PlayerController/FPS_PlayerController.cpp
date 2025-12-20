@@ -202,6 +202,20 @@ void AFPS_PlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
 	}
 }
 
+void AFPS_PlayerController::SetHUDGrenades(int32 Grenades)
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->GrenadeText)
+	{
+		FString GrenadesText = FString::Printf(TEXT("%d"), Grenades);
+		FPS_HUD->CharacterOverlay->GrenadeText->SetText(FText::FromString(GrenadesText));
+	}
+	else
+	{
+		HUDGrenades = Grenades;
+	}
+}
+
 void AFPS_PlayerController::SetHUDTime()
 {
 	float TimeLeft = 0.f;
@@ -369,6 +383,12 @@ void AFPS_PlayerController::PollInit()
 				SetHUDHealth(HUDHealth, HUDMaxHealth);
 				SetHUDScore(HUDScore);
 				SetHUDDefeats(HUDDefeats);
+
+				ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn());
+				if (BlasterCharacter && BlasterCharacter->GetCombat())
+				{
+					SetHUDGrenades(BlasterCharacter->GetCombat()->GetGrenades());
+				}
 			}
 		}
 	}

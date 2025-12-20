@@ -25,6 +25,7 @@ public:
 	void PlayFireMontage(bool bIsAiming);
 	void PlayReloadMontage();
 	void PlayElimMontage();
+	void PlayThrowGrenadeMontage();
 
 	virtual void OnRep_ReplicatedMovement() override;
 	void Elim();
@@ -78,6 +79,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* ReloadMontage;
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ThrowGrenadeMontage;
+
 	void HideCameraIfCharacterClose();
 
 	UPROPERTY(EditAnywhere)
@@ -127,9 +131,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Elim")
 	UMaterialInstance* DissolveMaterialInstance;
 
-/**
- * @brief Elim bot
- */
+	/**
+	 *  Elim bot
+	 */
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* ElimBotEffect;
 	UPROPERTY(VisibleAnywhere)
@@ -139,6 +143,11 @@ private:
 
 	UPROPERTY()
 	class ABlasterPlayerState* BlasterPlayerState;
+	/**
+	 * Grenade
+	 */
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* AttachedGrenade;
 
 protected:
 	// Called when the game starts or when spawned
@@ -162,6 +171,7 @@ protected:
 	void FireButtonPressed();
 	void FireButtonReleased();
 	void PlayHitReactMontage();
+	void GrenadeButtonPressed();
 
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
@@ -187,4 +197,5 @@ public:
 	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
+	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 };

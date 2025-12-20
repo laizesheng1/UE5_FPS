@@ -57,6 +57,9 @@ ABlasterCharacter::ABlasterCharacter()
 	MinNetUpdateFrequency = 33.f;
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
+	AttachedGrenade = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Attached Grenade"));
+	AttachedGrenade->SetupAttachment(GetMesh(), FName("GrenadeSocket"));
+	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -138,6 +141,15 @@ void ABlasterCharacter::PlayElimMontage()
 	}
 }
 
+void ABlasterCharacter::PlayThrowGrenadeMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ThrowGrenadeMontage)
+	{
+		AnimInstance->Montage_Play(ThrowGrenadeMontage);
+	}
+}
+
 void ABlasterCharacter::PlayHitReactMontage()
 {
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
@@ -148,6 +160,14 @@ void ABlasterCharacter::PlayHitReactMontage()
 		AnimInstance->Montage_Play(HitReactMontage);
 		FName SectionName("FromFront");
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+void ABlasterCharacter::GrenadeButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->ThrowGrenade();
 	}
 }
 
@@ -168,7 +188,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ABlasterCharacter::AimButtonReleased);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ABlasterCharacter::FireButtonPressed);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ABlasterCharacter::FireButtonReleased);
-	PlayerInputComponent->BindAction("Reload", IE_Released, this, &ABlasterCharacter::ReloadButtonPressed);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ABlasterCharacter::ReloadButtonPressed);
+	PlayerInputComponent->BindAction("ThrowGrenade", IE_Pressed, this, &ABlasterCharacter::GrenadeButtonPressed);
 
 }
 
@@ -232,10 +253,15 @@ void ABlasterCharacter::BeginPlay()
 	{
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
 	}
+	if (AttachedGrenade)
+	{
+		AttachedGrenade->SetVisibility(false);
+	}
 }
 
 void ABlasterCharacter::ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)
 {
+	if (bElimmed)	return;
 	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
 	UpdateHUDHealth();
 	PlayHitReactMontage();

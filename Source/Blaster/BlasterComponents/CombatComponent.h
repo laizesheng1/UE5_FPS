@@ -16,7 +16,7 @@ class BLASTER_API UCombatComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	friend class ABlasterCharacter;
 	UCombatComponent();
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -29,6 +29,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ShotgunShellReload();
 	void JumpToShotgunEnd();
+
+	UFUNCTION(BlueprintCallable)
+	void ThrowGrenadeFinished();
+	UFUNCTION(BlueprintCallable)
+	void LaunchGrenade();
+	UFUNCTION(Server, Reliable)
+	void ServerLaunchGrenade(const FVector_NetQuantize& Target);			//client locally know, transfer to server
 
 protected:
 	virtual void BeginPlay() override;
@@ -58,6 +65,18 @@ protected:
 	void HandleReload();
 	int32 AmountToReload();
 
+	void ThrowGrenade();
+	UFUNCTION(Server, Reliable)
+	void ServerThrowGrenade();
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AProjectile> GrenadeClass;
+	void DropEquippedWeapon();
+	void AttachActorToLeftHand(AActor* ActorToAttach);
+	void AttachActorToRightHand(AActor* ActorToAttach);
+	void UpdateCarriedAmmo();
+	void PlayEquipWeaponSound();
+	void ReloadEmptyWeapon();
+	void ShowAttachedGrenade(bool bShowGrenade);
 private:
 	UPROPERTY()
 	class ABlasterCharacter* character;
@@ -66,7 +85,7 @@ private:
 	UPROPERTY()
 	class AFPS_HUD* HUD;
 
-	UPROPERTY(ReplicatedUsing= OnRep_EquippedWeapon)
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	AWeapon* EquippedWeapon;
 
 	UPROPERTY(Replicated)
@@ -88,7 +107,7 @@ private:
 	float CrosshairAimFactor;
 	float CrosshairShootFactor;
 
-	FVector HitTarget;
+	FVector HitTarget;			//calculate locally
 	FHUDPackage HUDPackage;
 
 	/**
@@ -97,7 +116,7 @@ private:
 
 	float DefaultFOV;
 
-	UPROPERTY(EditAnywhere, Category=Combat)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	float ZoomedFOV = 30.f;
 
 	float CurrentFOV;
@@ -149,6 +168,14 @@ private:
 	void OnRep_CombatState();
 	void UpdateAmmoValues();
 	void UpdateShotgunAmmoValues();
-public:
 
+	UPROPERTY(ReplicatedUsing = OnRep_Grenades)
+	int32 Grenades = 4;
+	UFUNCTION()
+	void OnRep_Grenades();
+	UPROPERTY(EditAnywhere)
+	int32 MaxGrenades = 4;
+	void UpdateHUDGrenades();
+public:
+	FORCEINLINE int32 GetGrenades() const { return Grenades; }
 };
