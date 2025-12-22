@@ -26,7 +26,6 @@ UCombatComponent::UCombatComponent()
 
 }
 
-
 // Called when the game starts
 void UCombatComponent::BeginPlay()
 {
@@ -471,6 +470,19 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		character->bUseControllerRotationYaw = true;
 		PlayEquipWeaponSound();
+	}
+}
+
+void UCombatComponent::PickupAmmo(EWeaponType WeaponType, int32 AmmoAmount)
+{
+	if (CarriedAmmoMap.Contains(WeaponType))
+	{
+		CarriedAmmoMap[WeaponType] = FMath::Clamp(CarriedAmmoMap[WeaponType] + AmmoAmount, 0, MaxCarriedAmmo);
+		UpdateCarriedAmmo();
+	}
+	if (EquippedWeapon && EquippedWeapon->IsEmpty() && EquippedWeapon->GetWeaponType() == WeaponType)
+	{
+		Reload();
 	}
 }
 
