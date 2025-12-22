@@ -72,6 +72,7 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(ABlasterCharacter, Health);
 	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
+	DOREPLIFETIME(ABlasterCharacter, Shield);
 
 }
 
@@ -86,6 +87,24 @@ void ABlasterCharacter::PostInitializeComponents()
 	{
 		Buff->Character = this;
 		Buff->SetInitialSpeed(GetCharacterMovement()->MaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeedCrouched);
+		Buff->SetInitialJumpVelocity(GetCharacterMovement()->JumpZVelocity);
+	}
+}
+
+// Called when the game starts or when spawned
+void ABlasterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UpdateHUDHealth();
+	UpdateHUDShield();
+	if (HasAuthority())
+	{
+		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
+	}
+	if (AttachedGrenade)
+	{
+		AttachedGrenade->SetVisibility(false);
 	}
 }
 
@@ -251,27 +270,26 @@ void ABlasterCharacter::StartDissolve()
 	}
 }
 
-// Called when the game starts or when spawned
-void ABlasterCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-
-	UpdateHUDHealth();
-	if (HasAuthority())
-	{
-		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
-	}
-	if (AttachedGrenade)
-	{
-		AttachedGrenade->SetVisibility(false);
-	}
-}
-
 void ABlasterCharacter::ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)
 {
 	if (bElimmed)	return;
-	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
+	float DamageToHealth = Damage;
+	if (Shield > 0.f)
+	{
+		if (Shield >= Damage)
+		{
+			Shield = FMath::Clamp(Shield - Damage, 0.f, MaxShield);
+			DamageToHealth = 0.f;
+		}
+		else
+		{
+			DamageToHealth = FMath::Clamp(DamageToHealth - Shield, 0.f, Damage);
+			Shield = 0.f;
+		}
+	}
+	Health = FMath::Clamp(Health - DamageToHealth, 0.f, MaxHealth);
 	UpdateHUDHealth();
+	UpdateHUDShield();
 	PlayHitReactMontage();
 
 	if (Health == 0.0f)
@@ -295,12 +313,30 @@ void ABlasterCharacter::OnRep_Health(float LastHealth)
 	}
 }
 
+void ABlasterCharacter::OnRep_Shield(float LastShield)
+{
+	UpdateHUDShield();
+	if (Shield < LastShield)
+	{
+		PlayHitReactMontage();
+	}
+}
+
 void ABlasterCharacter::UpdateHUDHealth()
 {
 	FPS_PlayerController = FPS_PlayerController == nullptr ? Cast<AFPS_PlayerController>(Controller) : FPS_PlayerController;
 	if (FPS_PlayerController)
 	{
 		FPS_PlayerController->SetHUDHealth(Health, MaxHealth);
+	}
+}
+
+void ABlasterCharacter::UpdateHUDShield()
+{
+	FPS_PlayerController = FPS_PlayerController == nullptr ? Cast<AFPS_PlayerController>(Controller) : FPS_PlayerController;
+	if (FPS_PlayerController)
+	{
+		FPS_PlayerController->SetHUDShield(Shield, MaxShield);
 	}
 }
 

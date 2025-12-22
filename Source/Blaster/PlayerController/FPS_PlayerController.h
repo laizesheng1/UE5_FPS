@@ -15,6 +15,7 @@ class BLASTER_API AFPS_PlayerController : public APlayerController
 	GENERATED_BODY()
 public:
 	void SetHUDHealth(float Health, float MaxHealth);
+	void SetHUDShield (float Shield, float MaxShield);
 	void SetHUDScore(float Score);
 	void SetHUDDefeats(int32 Defeats);
 	void SetHUDWeaponAmmo(int32 Ammo);
@@ -25,7 +26,6 @@ public:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
 
 	virtual float GetServerTime();		//synced with server world clock
 	virtual void ReceivedPlayer() override;			//Sync with server clock as soon as possible
@@ -79,10 +79,17 @@ private:
 
 	UPROPERTY()
 	class UCharacterOverlay* CharacterOverlay;
-	bool bInitializeCharacterOverlay = false;
+
 	float HUDHealth;
 	float HUDMaxHealth;
+	bool bInitializeHealth = false;
 	float HUDScore;
+	bool bInitializeScore = false;
 	int32 HUDDefeats;
+	bool bInitializeDefeats = false;
 	int32 HUDGrenades;
+	bool bInitializeGrenade = false;
+	float HUDShield;
+	float HUDMaxShield;
+	bool bInitializeShield = false;
 };

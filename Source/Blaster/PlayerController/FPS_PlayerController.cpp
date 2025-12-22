@@ -108,9 +108,29 @@ void AFPS_PlayerController::SetHUDHealth(float Health, float MaxHealth)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeHealth = true;
 		HUDHealth = Health;
 		HUDMaxHealth = MaxHealth;
+	}
+}
+
+void AFPS_PlayerController::SetHUDShield(float Shield, float MaxShield)
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->ShieldBar &&
+		FPS_HUD->CharacterOverlay->ShieldText)
+	{
+		const float ShieldPrecent = Shield / MaxShield;
+		FPS_HUD->CharacterOverlay->ShieldBar->SetPercent(ShieldPrecent);
+		FString ShieldText = FString::Printf(TEXT("%d/%d"), FMath::CeilToInt(Shield), FMath::CeilToInt(MaxShield));
+		FPS_HUD->CharacterOverlay->ShieldText->SetText(FText::FromString(ShieldText));
+	}
+	else
+	{
+		bInitializeShield = true;
+		HUDShield = Shield;
+		HUDMaxShield = MaxShield;
 	}
 }
 
@@ -125,7 +145,7 @@ void AFPS_PlayerController::SetHUDScore(float Score)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeScore = true;
 		HUDScore = Score;
 	}
 }
@@ -140,7 +160,7 @@ void AFPS_PlayerController::SetHUDDefeats(int32 Defeats)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeDefeats = true;
 		HUDDefeats = Defeats;
 	}
 }
@@ -212,6 +232,7 @@ void AFPS_PlayerController::SetHUDGrenades(int32 Grenades)
 	}
 	else
 	{
+		bInitializeGrenade = true;
 		HUDGrenades = Grenades;
 	}
 }
@@ -380,14 +401,17 @@ void AFPS_PlayerController::PollInit()
 			CharacterOverlay = FPS_HUD->CharacterOverlay;
 			if (CharacterOverlay)
 			{
-				SetHUDHealth(HUDHealth, HUDMaxHealth);
-				SetHUDScore(HUDScore);
-				SetHUDDefeats(HUDDefeats);
+				if (bInitializeHealth)	SetHUDHealth(HUDHealth, HUDMaxHealth);
+				if (bInitializeShield)	SetHUDShield(HUDShield, HUDMaxShield);
+				if (bInitializeScore)	SetHUDScore(HUDScore);
+				if (bInitializeDefeats)	SetHUDDefeats(HUDDefeats);
+					
 
 				ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn());
 				if (BlasterCharacter && BlasterCharacter->GetCombat())
 				{
-					SetHUDGrenades(BlasterCharacter->GetCombat()->GetGrenades());
+					if (bInitializeGrenade)
+						SetHUDGrenades(BlasterCharacter->GetCombat()->GetGrenades());
 				}
 			}
 		}
