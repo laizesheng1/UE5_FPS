@@ -410,17 +410,7 @@ void ABlasterCharacter::OnRep_ReplicatedMovement()
 
 void ABlasterCharacter::Elim()
 {
-	if (Combat&& Combat->EquippedWeapon)
-	{
-		if (Combat->EquippedWeapon->bDestroyWeapon)
-		{
-			Combat->EquippedWeapon->Destroy();
-		}
-		else
-		{
-			Combat->EquippedWeapon->Dropped();
-		}
-	}
+	DropOrDestroyWeapons();
 	MulticastElim();
 	GetWorldTimerManager().SetTimer(
 		ElimTimer,
@@ -494,6 +484,34 @@ void ABlasterCharacter::ElimTimerFinished()
 	}
 }
 
+void ABlasterCharacter::DropOrDestroyWeapon(AWeapon* Weapon)
+{
+	if (Weapon == nullptr)	return;
+	if (Weapon->bDestroyWeapon)
+	{
+		Weapon->Destroy();
+	}
+	else
+	{
+		Weapon->Dropped();
+	}
+}
+
+void ABlasterCharacter::DropOrDestroyWeapons()
+{
+	if (Combat)
+	{
+		if (Combat->EquippedWeapon)
+		{
+			DropOrDestroyWeapon(Combat->EquippedWeapon);
+		}
+		if (Combat->SecondaryWeapon)
+		{
+			DropOrDestroyWeapon(Combat->SecondaryWeapon);
+		}
+	}
+}
+
 void ABlasterCharacter::Destroyed()
 {
 	Super::Destroy();
@@ -539,9 +557,23 @@ void ABlasterCharacter::EquipButtonPressed()
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
-		if (HasAuthority())
+		ServerEquipButtonPressed();
+	}
+}
+
+//
+void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
+{
+	if (Combat)
+	{
+		if(OverlappingWeapon)
+		{
 			Combat->EquipWeapon(OverlappingWeapon);
-		else ServerEquipButtonPressed();
+		}
+		else if(Combat->ShounldSwapWeapons())
+		{
+			Combat->SwapWeapon();
+		}
 	}
 }
 
@@ -724,15 +756,6 @@ void ABlasterCharacter::TurnInPlace(float DeltaTime)
 			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		}
-	}
-}
-
-//
-void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
-{
-	if (Combat)
-	{
-		Combat->EquipWeapon(OverlappingWeapon);
 	}
 }
 
