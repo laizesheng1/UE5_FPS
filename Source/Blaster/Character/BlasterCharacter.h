@@ -41,6 +41,9 @@ public:
 
 	void UpdateHUDHealth();
 	void UpdateHUDShield();
+
+	void SpawnDefaultWeapon();
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class USpringArmComponent* CameraBoom;
@@ -163,6 +166,9 @@ private:
 	 */
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* AttachedGrenade;
+	//Default weapon
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AWeapon> DefaultWeaponClass;
 
 protected:
 	// Called when the game starts or when spawned
@@ -193,6 +199,8 @@ protected:
 	//Poll for any relevant classed and initialize our HUD
 	void PollInit();
 	void RotateInPlace(float DeltaTime);
+	void UpdateHUDAmmo();
+
 public:	
 	void SetOverlappingWeapon(AWeapon* weapon);
 	bool IsWeaponEquipped();
