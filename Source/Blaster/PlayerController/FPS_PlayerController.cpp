@@ -14,6 +14,7 @@
 #include "Blaster/BlasterComponents/CombatComponent.h"
 #include "Blaster/GameState/BlasterGameState.h"
 #include "Blaster/PlayerState/BlasterPlayerState.h"
+#include "Components/Image.h"
 
 void AFPS_PlayerController::BeginPlay()
 {
@@ -36,9 +37,35 @@ void AFPS_PlayerController::Tick(float DeltaTime)
 	SetHUDTime();
 	CheckTimeSync(DeltaTime);
 	PollInit();			//set HUD before characteroverlay was initialized
+	CheckPing(DeltaTime);
 }
 
-
+void AFPS_PlayerController::CheckPing(float DeltaTime)
+{
+	HighPingRunningTime += DeltaTime;
+	if (HighPingRunningTime > CheckPingFrequency)
+	{
+		PlayerState = PlayerState == nullptr ? GetPlayerState<ABlasterPlayerState>() : PlayerState;
+		if (PlayerState)
+		{
+			if (PlayerState->GetCompressedPing() * 4 > HighPingThreshold)
+			{
+				HighPingWarning();
+				PingAnimationRunningTime = 0.f;
+			}
+		}
+		HighPingRunningTime = 0.f;
+	}
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->HighPingAnimation &&
+		FPS_HUD->CharacterOverlay->IsAnimationPlaying(FPS_HUD->CharacterOverlay->HighPingAnimation))
+	{
+		PingAnimationRunningTime += DeltaTime;
+		if (PingAnimationRunningTime > HighPingDuration)
+		{
+			StopHighPingWarning();
+		}
+	}
+}
 
 void AFPS_PlayerController::CheckTimeSync(float DeltaTime)
 {
@@ -91,6 +118,34 @@ void AFPS_PlayerController::OnPossess(APawn* InPawn)
 	if (BlasterCharacter)
 	{
 		SetHUDHealth(BlasterCharacter->GetHealth(), BlasterCharacter->GetMaxHealth());
+	}
+}
+
+void AFPS_PlayerController::HighPingWarning()
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->HighPingImage &&
+		FPS_HUD->CharacterOverlay->HighPingAnimation)
+	{
+		FPS_HUD->CharacterOverlay->HighPingImage->SetOpacity(1.0f);
+		FPS_HUD->CharacterOverlay->PlayAnimation(FPS_HUD->CharacterOverlay->HighPingAnimation,
+			0.f,
+			5
+		);
+	}
+}
+
+void AFPS_PlayerController::StopHighPingWarning()
+{
+	FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+	if (FPS_HUD && FPS_HUD->CharacterOverlay && FPS_HUD->CharacterOverlay->HighPingImage &&
+		FPS_HUD->CharacterOverlay->HighPingAnimation)
+	{
+		FPS_HUD->CharacterOverlay->HighPingImage->SetOpacity(0.0f);
+		if(FPS_HUD->CharacterOverlay->IsAnimationPlaying(FPS_HUD->CharacterOverlay->HighPingAnimation))
+		{
+			FPS_HUD->CharacterOverlay->StopAnimation(FPS_HUD->CharacterOverlay->HighPingAnimation);
+		}
 	}
 }
 
