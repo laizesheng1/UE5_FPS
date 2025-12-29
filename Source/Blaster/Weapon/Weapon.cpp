@@ -74,7 +74,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AWeapon, WeaponState);
-
+	DOREPLIFETIME_CONDITION(AWeapon, bUseServerSideRewind, COND_OwnerOnly);
 }
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -177,6 +177,11 @@ void AWeapon::SetWeaponState(EWeaponState state)
 	OnWeaponStateSet();
 }
 
+void AWeapon::OnPingTooHigh(bool bPingTooHigh)
+{
+	bUseServerSideRewind = !bPingTooHigh;
+}
+
 void AWeapon::OnRep_WeaponState()
 {
 	OnWeaponStateSet();
@@ -212,6 +217,16 @@ void AWeapon::OnEquipped()
 		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	}
 	EnableCustomDepth(false);
+
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter && bUseServerSideRewind)
+	{
+		FPS_OwnerController = FPS_OwnerController == nullptr ? Cast<AFPS_PlayerController>(BlasterOwnerCharacter->Controller) : FPS_OwnerController;
+		if (FPS_OwnerController && HasAuthority() && !FPS_OwnerController->HighPingDelegate.IsBound())
+		{
+			FPS_OwnerController->HighPingDelegate.AddDynamic(this, &AWeapon::OnPingTooHigh);
+		}
+	}
 }
 
 void AWeapon::OnDropped()
@@ -230,6 +245,16 @@ void AWeapon::OnDropped()
 	WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_BLUE);
 	WeaponMesh->MarkRenderStateDirty();
 	EnableCustomDepth(true);
+
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter && bUseServerSideRewind)
+	{
+		FPS_OwnerController = FPS_OwnerController == nullptr ? Cast<AFPS_PlayerController>(BlasterOwnerCharacter->Controller) : FPS_OwnerController;
+		if (FPS_OwnerController && HasAuthority() && FPS_OwnerController->HighPingDelegate.IsBound())
+		{
+			FPS_OwnerController->HighPingDelegate.RemoveDynamic(this, &AWeapon::OnPingTooHigh);
+		}
+	}
 }
 
 void AWeapon::OnEquippedSecondary()
@@ -250,6 +275,16 @@ void AWeapon::OnEquippedSecondary()
 	{
 		WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_TAN);
 		WeaponMesh->MarkRenderStateDirty();
+	}
+
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter && bUseServerSideRewind)
+	{
+		FPS_OwnerController = FPS_OwnerController == nullptr ? Cast<AFPS_PlayerController>(BlasterOwnerCharacter->Controller) : FPS_OwnerController;
+		if (FPS_OwnerController && HasAuthority() && FPS_OwnerController->HighPingDelegate.IsBound())
+		{
+			FPS_OwnerController->HighPingDelegate.RemoveDynamic(this, &AWeapon::OnPingTooHigh);
+		}
 	}
 }
 
