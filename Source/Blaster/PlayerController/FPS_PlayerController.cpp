@@ -15,6 +15,7 @@
 #include "Blaster/GameState/BlasterGameState.h"
 #include "Blaster/PlayerState/BlasterPlayerState.h"
 #include "Components/Image.h"
+#include "Blaster/HUD/ReturnToMainMenu.h"
 
 void AFPS_PlayerController::BeginPlay()
 {
@@ -493,6 +494,35 @@ void AFPS_PlayerController::PollInit()
 						SetHUDGrenades(BlasterCharacter->GetCombat()->GetGrenades());
 				}
 			}
+		}
+	}
+}
+
+void AFPS_PlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	if (InputComponent == nullptr)	return;
+
+	InputComponent->BindAction("Quit", IE_Pressed, this, &AFPS_PlayerController::ShowReturnToMainMenu);
+}
+
+void AFPS_PlayerController::ShowReturnToMainMenu()
+{
+	if (ReturnToMainMenuWidget == nullptr)	return;
+	if (ReturnToMainMenu == nullptr)
+	{
+		ReturnToMainMenu = CreateWidget<UReturnToMainMenu>(this, ReturnToMainMenuWidget);
+	}
+	if (ReturnToMainMenu)
+	{
+		bReturnToMainMenuOpen = !bReturnToMainMenuOpen;
+		if (bReturnToMainMenuOpen)
+		{
+			ReturnToMainMenu->MenuSetup();
+		}
+		else
+		{
+			ReturnToMainMenu->MenuTearDown();
 		}
 	}
 }
