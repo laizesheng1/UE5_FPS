@@ -132,7 +132,7 @@ FServerSideRewindResult ULagCompensationComponent::ProjectileConfiemHit(const FF
 	UBoxComponent* HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
 	HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	HeadBox->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
-
+	
 	FPredictProjectilePathParams PathParams;
 	PathParams.bTraceWithCollision = true;
 	PathParams.MaxSimTime = MaxRecordTime;
