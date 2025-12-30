@@ -69,6 +69,8 @@ void ABlasterGameMode::OnMatchStateSet()
 
 void ABlasterGameMode::PlayerEliminated(ABlasterCharacter* ElimmedCharacter, AFPS_PlayerController* VictimController, AFPS_PlayerController* AttackerController)
 {
+	if (AttackerController == nullptr || AttackerController->PlayerState == nullptr)	return;
+	if (VictimController == nullptr || VictimController->PlayerState == nullptr)	return;
 	ABlasterPlayerState* AttackerPlayerState = AttackerController ? Cast< ABlasterPlayerState>(AttackerController->PlayerState) : nullptr;
 	ABlasterPlayerState* VictimPlayerState = VictimController ? Cast< ABlasterPlayerState>(VictimController->PlayerState) : nullptr;
 	ABlasterGameState* BlasterGameState = GetGameState<ABlasterGameState>();
@@ -114,6 +116,14 @@ void ABlasterGameMode::PlayerEliminated(ABlasterCharacter* ElimmedCharacter, AFP
 	if (ElimmedCharacter)
 	{
 		ElimmedCharacter->Elim(false);
+	}
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AFPS_PlayerController* FPS_Player = Cast<AFPS_PlayerController>(*It);
+		if (FPS_Player && AttackerPlayerState && VictimPlayerState)
+		{
+			FPS_Player->BroadcastElim(AttackerPlayerState, VictimPlayerState);
+		}
 	}
 }
 

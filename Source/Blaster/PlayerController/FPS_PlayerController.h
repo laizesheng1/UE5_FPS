@@ -38,6 +38,8 @@ public:
 
 	FHighPingDelegate HighPingDelegate;
 
+	void BroadcastElim(APlayerState* Attacker, APlayerState* Victim);
+
 protected:
 	virtual void BeginPlay() override;
 	void SetHUDTime();
@@ -71,6 +73,8 @@ protected:
 
 	void ShowReturnToMainMenu();
 
+	UFUNCTION(Client, Reliable)
+	void ClientElimAnnouncement(APlayerState* Attacker, APlayerState* Victim);
 
 private:
 	UPROPERTY()
@@ -83,6 +87,9 @@ private:
 	class UReturnToMainMenu* ReturnToMainMenu;
 
 	bool bReturnToMainMenuOpen = false;
+
+	UPROPERTY()
+	class ABlasterGameMode* BlasterGameMode;
 
 	float LevelStartingTime = 0.f;
 	float MatchTime = 0.f;

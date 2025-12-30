@@ -326,14 +326,19 @@ void AFPS_PlayerController::SetHUDTime()
 		TimeLeft = CooldownTime + WarmupTime + MatchTime - GetServerTime() + LevelStartingTime;
 
 	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
-	/*if (HasAuthority())			//left a bug :server time can't down, remove is good
-	{
-		BlasterGameMode = BlasterGameMode == nullptr ? Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this)) : BlasterGameMode;
-		if (BlasterGameMode)
-		{
-			SecondsLeft = FMath::CeilToInt(BlasterGameMode->GetCooldownTime() + LevelStartingTime);
-		}
-	}*/
+	//if (HasAuthority())			//left a bug :server time can't down, remove is good
+	//{
+	//	if (BlasterGameMode == nullptr)
+	//	{
+	//		BlasterGameMode = Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this));
+	//		LevelStartingTime = BlasterGameMode->LevelStartingTime;
+	//	}
+	//	BlasterGameMode = BlasterGameMode == nullptr ? Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this)) : BlasterGameMode;
+	//	if (BlasterGameMode)
+	//	{
+	//		SecondsLeft = FMath::CeilToInt(BlasterGameMode->GetCooldownTime() + LevelStartingTime);
+	//	}
+	//}
 
 	if (CountdownInt != SecondsLeft)
 	{
@@ -523,6 +528,44 @@ void AFPS_PlayerController::ShowReturnToMainMenu()
 		else
 		{
 			ReturnToMainMenu->MenuTearDown();
+		}
+	}
+}
+
+void AFPS_PlayerController::BroadcastElim(APlayerState* Attacker, APlayerState* Victim)
+{
+	ClientElimAnnouncement(Attacker, Victim);
+}
+
+void AFPS_PlayerController::ClientElimAnnouncement_Implementation(APlayerState* Attacker, APlayerState* Victim)
+{
+	APlayerState* Self = GetPlayerState<APlayerState>();
+	if (Attacker && Victim && Self)
+	{
+		FPS_HUD = FPS_HUD == nullptr ? Cast<AFPS_HUD>(GetHUD()) : FPS_HUD;
+		if (FPS_HUD)
+		{
+			if (Attacker == Self && Victim != Self)
+			{
+				FPS_HUD->AddElimAnnouncement("You", Victim->GetPlayerName());
+				return;
+			}
+			if (Victim == Self && Attacker != Self)
+			{
+				FPS_HUD->AddElimAnnouncement(Attacker->GetPlayerName(), "you");
+				return;
+			}
+			if (Attacker == Victim && Attacker == Self)
+			{
+				FPS_HUD->AddElimAnnouncement("You", "youself");
+				return;
+			}
+			if (Attacker == Victim && Attacker != Self)
+			{
+				FPS_HUD->AddElimAnnouncement(Attacker->GetPlayerName(), "themself");
+				return;
+			}
+			FPS_HUD->AddElimAnnouncement(Attacker->GetPlayerName(), Victim->GetPlayerName());
 		}
 	}
 }

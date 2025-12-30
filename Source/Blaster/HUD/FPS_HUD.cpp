@@ -5,11 +5,16 @@
 #include "GameFramework/PlayerController.h"
 #include "CharacterOverlay.h"
 #include "Announcement.h"
+#include "ElimAnnouncement.h"
+#include "Components/HorizontalBox.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/CanvasPanelSlot.h"
 
 void AFPS_HUD::BeginPlay()
 {
 	Super::BeginPlay();
 	//AddCharacterOverlay();
+	//AddElimAnnouncement("Player1", "Player2");
 }
 
 void AFPS_HUD::AddCharacterOverlay()
@@ -29,6 +34,54 @@ void AFPS_HUD::AddAnnoucement()
 	{
 		Annoucement = CreateWidget<UAnnouncement>(PlayerController, AnnoucementClass);
 		Annoucement->AddToViewport();
+	}
+}
+
+void AFPS_HUD::AddElimAnnouncement(FString Attacker, FString Victim)
+{
+	OwningPlayer = OwningPlayer == nullptr ? GetOwningPlayerController() : OwningPlayer;
+	if (OwningPlayer && ElimAnnouncementClass)
+	{
+		UElimAnnouncement* ElimAnnouncementWidget = CreateWidget<UElimAnnouncement>(OwningPlayer, ElimAnnouncementClass);
+		if(ElimAnnouncementWidget)
+		{
+			ElimAnnouncementWidget->SetElimAnnouncementTetx(Attacker, Victim);
+			ElimAnnouncementWidget->AddToViewport();
+
+			for (UElimAnnouncement* Msg : ElimMessage)
+			{
+				if (Msg && Msg->AnnouncementBox)
+				{
+					UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(Msg->AnnouncementBox);
+					if (CanvasSlot)
+					{
+						FVector2D Position = CanvasSlot->GetPosition();
+						FVector2D NewPosition(CanvasSlot->GetPosition().X, CanvasSlot->GetPosition().Y + CanvasSlot->GetSize().Y);
+						CanvasSlot->SetPosition(NewPosition);
+					}
+				}
+			}
+
+			ElimMessage.Add(ElimAnnouncementWidget);
+
+			FTimerHandle ElimMsgTimer;
+			FTimerDelegate ElimMsgDelegate;
+			ElimMsgDelegate.BindUFunction(this, FName("ElimAnnouncementTimerFinished"), ElimAnnouncementWidget);
+			GetWorldTimerManager().SetTimer(
+				ElimMsgTimer,
+				ElimMsgDelegate,
+				ElimAnnouncementTime,
+				false
+			);
+		}
+	}
+}
+
+void AFPS_HUD::ElimAnnouncementTimerFinished(UElimAnnouncement* MsgToRemove)
+{
+	if (MsgToRemove)
+	{
+		MsgToRemove->RemoveFromParent();
 	}
 }
 
@@ -86,3 +139,5 @@ void AFPS_HUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter, FVec
 		1.f, 1.f, CrosshairColor
 	);
 }
+
+
