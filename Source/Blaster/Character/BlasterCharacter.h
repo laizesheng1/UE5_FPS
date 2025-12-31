@@ -8,6 +8,7 @@
 #include "Blaster/Interfaces/InteractWithCrosshairInterface.h"
 #include "Components/TimelineComponent.h"
 #include "Blaster/FPS_Types/CombatState.h"
+#include "Blaster/FPS_Types/Team.h"
 #include "BlasterCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLeftGame);
@@ -59,6 +60,8 @@ public:
 	void MulticastGainTheLead();
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastLostTheLead();
+
+	void SetTeamColor(ETeam Team);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -172,8 +175,26 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Elim")
 	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
 	//Material instance set on the Blueprint, used with the dynamic material instance
-	UPROPERTY(EditAnywhere, Category = "Elim")
+	UPROPERTY(VisibleAnywhere, Category = "Elim")
 	UMaterialInstance* DissolveMaterialInstance;
+
+	/*
+	* Team Colors
+	*/
+	UPROPERTY(EditAnywhere, Category = "Elim")
+	UMaterialInstance* RedDissolveMatInstance;
+
+	UPROPERTY(EditAnywhere, Category = "Elim")
+	UMaterialInstance* RedMaterial;
+
+	UPROPERTY(EditAnywhere, Category = "Elim")
+	UMaterialInstance* BlueDissolveMatInstance;
+
+	UPROPERTY(EditAnywhere, Category = "Elim")
+	UMaterialInstance* BlueMaterial;
+
+	UPROPERTY(EditAnywhere, Category = "Elim")
+	UMaterialInstance* OriginalMaterial;
 
 	/**
 	 *  Elim bot
