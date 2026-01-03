@@ -213,4 +213,5 @@ public:
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
 	FORCEINLINE float GetDamage() const { return Damage; }
 	FORCEINLINE float GetHeadDamage() const { return HeadShotDamage; }
+	FORCEINLINE ETeam GetTeam() const { return Team; }
 };
