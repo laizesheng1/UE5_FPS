@@ -194,9 +194,9 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	SpawnDefaultWeapon();
-	UpdateHUDAmmo();
-	UpdateHUDHealth();
-	UpdateHUDShield();
+	//UpdateHUDAmmo();
+	//UpdateHUDHealth();
+	//UpdateHUDShield();
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
@@ -302,6 +302,7 @@ void ABlasterCharacter::GrenadeButtonPressed()
 {
 	if (Combat)
 	{
+		if (Combat->bHoldingTheFlag)	return;
 		Combat->ThrowGrenade();
 	}
 }
@@ -339,6 +340,13 @@ void ABlasterCharacter::Tick(float DeltaTime)
 
 void ABlasterCharacter::RotateInPlace(float DeltaTime)
 {
+	if (Combat && Combat->bHoldingTheFlag)
+	{
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		return;
+	}
 	if (bDisableGameplay)
 	{
 		bUseControllerRotationYaw = false;
@@ -460,6 +468,15 @@ void ABlasterCharacter::UpdateHUDAmmo()
 	}
 }
 
+void ABlasterCharacter::UpdateHUDGrenade()
+{
+	FPS_PlayerController = FPS_PlayerController == nullptr ? Cast<AFPS_PlayerController>(Controller) : FPS_PlayerController;
+	if (FPS_PlayerController && Combat && Combat->EquippedWeapon)
+	{
+		FPS_PlayerController->SetHUDGrenades(Combat->GetGrenades());
+	}
+}
+
 void ABlasterCharacter::SpawnDefaultWeapon()
 {
 	BlasterGameMode = BlasterGameMode == nullptr ? GetWorld()->GetAuthGameMode<ABlasterGameMode>() : BlasterGameMode;
@@ -520,6 +537,18 @@ void ABlasterCharacter::PollInit()
 			{
 				MulticastGainTheLead();
 			}
+		}
+	}
+	//when delayedStart, Controller is nullptr when beginPlay()
+	if (FPS_PlayerController == nullptr)
+	{
+		FPS_PlayerController = FPS_PlayerController == nullptr ? Cast<AFPS_PlayerController>(Controller) : FPS_PlayerController;
+		if (FPS_PlayerController)
+		{
+			UpdateHUDAmmo();
+			UpdateHUDHealth();
+			UpdateHUDShield();
+			UpdateHUDGrenade();
 		}
 	}
 }
@@ -682,6 +711,10 @@ void ABlasterCharacter::DropOrDestroyWeapons()
 		{
 			DropOrDestroyWeapon(Combat->SecondaryWeapon);
 		}
+		if (Combat->TheFlag)
+		{
+			Combat->TheFlag->Dropped();
+		}
 	}
 }
 
@@ -730,6 +763,7 @@ void ABlasterCharacter::EquipButtonPressed()
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
+		if (Combat->bHoldingTheFlag)	return;
 		if (Combat->CombatState == ECombatState::ECS_Unoccupied) ServerEquipButtonPressed();
 		if (Combat->ShounldSwapWeapons() && !HasAuthority() && Combat->CombatState == ECombatState::ECS_Unoccupied &&
 			OverlappingWeapon == nullptr)
@@ -759,6 +793,7 @@ void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 
 void ABlasterCharacter::CrouchButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (bIsCrouched)
 		UnCrouch();
@@ -771,6 +806,7 @@ void ABlasterCharacter::CrouchButtonPressed()
 
 void ABlasterCharacter::ReloadButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
@@ -780,6 +816,7 @@ void ABlasterCharacter::ReloadButtonPressed()
 
 void ABlasterCharacter::AimButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
@@ -789,6 +826,7 @@ void ABlasterCharacter::AimButtonPressed()
 
 void ABlasterCharacter::AimButtonReleased()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
@@ -798,6 +836,7 @@ void ABlasterCharacter::AimButtonReleased()
 
 void ABlasterCharacter::Jump()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (bIsCrouched)
 	{
@@ -810,6 +849,7 @@ void ABlasterCharacter::Jump()
 
 void ABlasterCharacter::FireButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
@@ -819,6 +859,7 @@ void ABlasterCharacter::FireButtonPressed()
 
 void ABlasterCharacter::FireButtonReleased()
 {
+	if (Combat && Combat->bHoldingTheFlag)	return;
 	if (bDisableGameplay)	return;
 	if (Combat)
 	{
@@ -1000,6 +1041,12 @@ bool ABlasterCharacter::IsLocallyReloading()
 {
 	if (Combat == nullptr) return false;
 	return Combat->bLocallyReloading;
+}
+
+bool ABlasterCharacter::IsHoldingTheFlag() const
+{
+	if (Combat == nullptr) return false;
+	return Combat->bHoldingTheFlag;
 }
 
 void ABlasterCharacter::SetTeamColor(ETeam Team)

@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Blaster/Character/BlasterCharacter.h"
 #include "WeaponTypes.h"
+#include "Blaster/FPS_Types/Team.h"
 #include "Weapon.generated.h"
 
 
@@ -44,7 +45,7 @@ public:
 	void SetHUDAmmo();
 	void ShowPickUpWidget(bool bShowWidget);
 	virtual void Fire(const FVector& HitTarget);
-	void Dropped();
+	virtual void Dropped();
 	void AddAmmo(int32 AmmoToAdd);
 	FVector TraceEndWithScatter(const FVector& HitTarget);
 
@@ -195,10 +196,14 @@ private:
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
 
+	UPROPERTY(EditAnywhere)
+	ETeam Team;
+
 public:
 	void SetWeaponState(EWeaponState state);
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickUpWidget; }
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomedInterSpeed() const { return ZoomedInterSpeed; }
 	bool IsEmpty();

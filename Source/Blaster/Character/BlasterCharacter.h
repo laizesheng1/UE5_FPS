@@ -45,6 +45,9 @@ public:
 
 	void UpdateHUDHealth();
 	void UpdateHUDShield();
+	void UpdateHUDAmmo();
+	void UpdateHUDGrenade();
+
 	void SpawnDefaultWeapon();
 
 	UPROPERTY()
@@ -295,7 +298,6 @@ protected:
 	//Poll for any relevant classed and initialize our HUD
 	void PollInit();
 	void RotateInPlace(float DeltaTime);
-	void UpdateHUDAmmo();
 
 public:	
 	void SetOverlappingWeapon(AWeapon* weapon);
@@ -323,4 +325,5 @@ public:
 	FORCEINLINE UBuffComponent* GetBuff() const { return Buff; }
 	bool IsLocallyReloading();
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
+	FORCEINLINE bool IsHoldingTheFlag() const;
 };
