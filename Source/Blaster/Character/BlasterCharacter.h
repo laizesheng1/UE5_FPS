@@ -223,6 +223,9 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AWeapon> DefaultWeaponClass;
 
+	UPROPERTY()
+	class ABlasterGameMode* BlasterGameMode;
+
 	//Hit boxes used for server-side rewind
 	UPROPERTY(EditAnywhere)
 	UBoxComponent* head;

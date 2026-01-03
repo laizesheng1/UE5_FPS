@@ -62,9 +62,14 @@ void ABlasterGameMode::OnMatchStateSet()
 		AFPS_PlayerController* BlasterPlayer = Cast<AFPS_PlayerController>(*It);
 		if(BlasterPlayer)
 		{
-			BlasterPlayer->OnMatchStateSet(MatchState);
+			BlasterPlayer->OnMatchStateSet(MatchState, bTeamMatch);
 		}
 	}
+}
+
+float ABlasterGameMode::CalculateDamage(AController* Attacker, AController* Victim, float BaseDamage)
+{
+	return BaseDamage;
 }
 
 void ABlasterGameMode::PlayerEliminated(ABlasterCharacter* ElimmedCharacter, AFPS_PlayerController* VictimController, AFPS_PlayerController* AttackerController)
@@ -157,5 +162,3 @@ void ABlasterGameMode::PlayerLeftGame(ABlasterPlayerState* PlayerLeaving)
 		CharacterLeaving->Elim(true);
 	}
 }
-
-
